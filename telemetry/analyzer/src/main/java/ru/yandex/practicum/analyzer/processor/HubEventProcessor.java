@@ -9,7 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.analyzer.config.AnalyzerKafkaProperties;
-import ru.yandex.practicum.analyzer.model.*;
+import ru.yandex.practicum.analyzer.model.Action;
+import ru.yandex.practicum.analyzer.model.ActionType;
+import ru.yandex.practicum.analyzer.model.Condition;
+import ru.yandex.practicum.analyzer.model.ConditionOperation;
+import ru.yandex.practicum.analyzer.model.ConditionType;
+import ru.yandex.practicum.analyzer.model.Sensor;
 import ru.yandex.practicum.analyzer.service.ScenarioService;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 
@@ -28,7 +33,6 @@ public class HubEventProcessor implements Runnable {
     private final KafkaConsumer<String, HubEventAvro> consumer;
     private final AnalyzerKafkaProperties kafkaProperties;
     private final ScenarioService scenarioService;
-
 
     @Override
     public void run() {
@@ -65,7 +69,6 @@ public class HubEventProcessor implements Runnable {
 
     private void handleHubEvent(HubEventAvro event) {
         String hubId = event.getHubId();
-
         Object payload = event.getPayload();
 
         switch (payload) {
@@ -96,8 +99,8 @@ public class HubEventProcessor implements Runnable {
 
             Optional<Sensor> sensor = scenarioService.findSensor(sensorId, hubId);
             if (sensor.isEmpty()) {
-                log.warn("Sensor {} not found for scenario '{}', skipping condition", sensorId, scenarioName);
-                continue;
+                log.warn("Sensor {} not found for scenario '{}', aborting scenario creation", sensorId, scenarioName);
+                return;
             }
 
             ConditionType type = ConditionType.valueOf(conditionAvro.getType().name());
@@ -115,7 +118,9 @@ public class HubEventProcessor implements Runnable {
                 } else if (valueObj instanceof Boolean) {
                     value = ((Boolean) valueObj) ? 1 : 0;
                 } else {
-                    log.warn("Unexpected value type: {}", valueObj.getClass());
+                    log.warn("Unexpected value type: {} for scenario '{}', aborting scenario creation",
+                            valueObj.getClass(), scenarioName);
+                    return;
                 }
             }
 
@@ -130,8 +135,8 @@ public class HubEventProcessor implements Runnable {
 
             Optional<Sensor> sensor = scenarioService.findSensor(sensorId, hubId);
             if (sensor.isEmpty()) {
-                log.warn("Sensor {} not found for scenario '{}', skipping action", sensorId, scenarioName);
-                continue;
+                log.warn("Sensor {} not found for scenario '{}', aborting scenario creation", sensorId, scenarioName);
+                return;
             }
 
             ActionType actionType = ActionType.valueOf(actionAvro.getType().name());
