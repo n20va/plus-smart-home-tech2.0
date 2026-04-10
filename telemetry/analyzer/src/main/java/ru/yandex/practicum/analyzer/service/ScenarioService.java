@@ -29,9 +29,9 @@ public class ScenarioService {
 
     @Transactional
     public void addSensor(String sensorId, String hubId) {
-        Optional<Sensor> existing = sensorRepository.findById(sensorId);
+        Optional<Sensor> existing = sensorRepository.findByIdAndHubId(sensorId, hubId);
         if (existing.isPresent()) {
-            log.debug("Sensor {} already exists, skipping", sensorId);
+            log.debug("Sensor {} already exists in hub {}, skipping", sensorId, hubId);
             return;
         }
 
@@ -39,7 +39,6 @@ public class ScenarioService {
         sensorRepository.save(sensor);
         log.info("Sensor added: id={}, hubId={}", sensorId, hubId);
     }
-
 
     @Transactional
     public void removeSensor(String sensorId, String hubId) {
@@ -52,7 +51,6 @@ public class ScenarioService {
         sensorRepository.delete(sensor.get());
         log.info("Sensor removed: id={}, hubId={}", sensorId, hubId);
     }
-
 
     @Transactional
     public void addScenario(String hubId, String name,
@@ -79,7 +77,6 @@ public class ScenarioService {
                 hubId, name, conditions.size(), actions.size());
     }
 
-
     @Transactional
     public void removeScenario(String hubId, String name) {
         Optional<Scenario> scenario = scenarioRepository.findByHubIdAndName(hubId, name);
@@ -92,11 +89,9 @@ public class ScenarioService {
         log.info("Scenario removed: hub={}, name={}", hubId, name);
     }
 
-
     public List<Scenario> getScenariosForHub(String hubId) {
         return scenarioRepository.findByHubId(hubId);
     }
-
 
     public Optional<Sensor> findSensor(String sensorId, String hubId) {
         return sensorRepository.findByIdAndHubId(sensorId, hubId);
